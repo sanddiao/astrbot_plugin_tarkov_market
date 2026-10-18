@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.tmp
+
+# 在线刷新产生的实时价缓存（运行时生成，不属于代码）
+data/live_prices.json
