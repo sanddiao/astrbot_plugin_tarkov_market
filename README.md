@@ -6,9 +6,11 @@
 
 ## 功能
 
-- 🔍 物资搜索：按英文原名（normalizedName）模糊搜索，支持前缀/子串匹配
+- 🔍 物资搜索：中文名 / 英文原名（normalizedName）双向搜索，支持前缀/子串匹配
 - 💰 价格查询：跳蚤 24h 均价、最低/最高价、48h 涨跌幅、商人收购/出售价
 - 📦 物品详情：格子尺寸、重量、分类、跳蚤等级、跳蚤链接、Wiki 链接
+- 🎯 用途查询：物品的任务需求 / 兑换 / 合成 / 藏身处升级（中文）
+- 🔎 任务反查：按任务名（如「兽医也是医」）找出需要上交/出售的所有物品
 
 ## 技术栈
 
@@ -26,16 +28,20 @@ tarkov-info/
 │   ├── config.js        # 配置（端口、DB 路径、数据源 URL）
 │   ├── db.js            # SQLite 连接与表结构
 │   ├── fetcher.js       # tarkov.dev 抓取
-│   ├── queries.js       # 搜索/详情查询
+│   ├── queries.js       # 搜索/详情/用途查询
 │   ├── routes/
 │   │   └── api.js       # REST API 路由
 │   └── jobs/
-│       └── sync.js      # 全量同步任务
+│       ├── sync.js      # tarkov.dev 全量同步任务
+│       └── import_zh.js # 中文数据集导入（中文名 + 用途）
 ├── public/              # 前端静态资源
 │   ├── index.html
 │   ├── style.css
 │   └── app.js
-├── data/                # SQLite 数据库（运行时生成，已 gitignore）
+├── data/                # 运行时数据
+│   ├── seed/            # 种子数据（纳入版本控制）
+│   │   └── items_zh.json # 中文名 + 用途数据集
+│   └── tarkov.db        # SQLite 数据库（运行时生成，已 gitignore）
 ├── package.json
 └── .env.example
 ```
@@ -46,10 +52,13 @@ tarkov-info/
 # 1. 安装依赖
 pnpm install
 
-# 2. 启动（首次会自动同步全量物品数据）
+# 2. 启动（首次会自动同步 tarkov.dev 全量物品数据）
 pnpm dev
 
-# 3. 打开浏览器
+# 3. 导入中文名 + 用途数据（若首次未自动导入）
+node src/jobs/import_zh.js data/seed/items_zh.json
+
+# 4. 打开浏览器
 # http://127.0.0.1:3000
 ```
 
@@ -57,15 +66,17 @@ pnpm dev
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/health` | 健康检查（物品数、同步时间） |
-| GET | `/api/items/search?q=<关键词>` | 搜索物品 |
-| GET | `/api/items/:id` | 物品详情 |
-| POST | `/api/sync` | 手动触发全量同步 |
+| GET | `/api/health` | 健康检查（物品数、同步时间、中文导入时间） |
+| GET | `/api/items/search?q=<关键词>` | 搜索物品（中/英文名） |
+| GET | `/api/items/:id` | 物品详情（含用途） |
+| GET | `/api/usage/search?q=<任务名>` | 反查用途（按任务名找相关物品） |
+| POST | `/api/sync` | 手动触发 tarkov.dev 全量同步 |
 
 ## 数据源说明
 
-- 实时价格与物品数据来自 `https://json.tarkov.dev/regular/items`（免鉴权 JSON 快照，约 17MB）
-- 中文名暂未接入（`items_zh` 端点当前为英文）；后续可接入 Tarkov Wiki 或社区中文数据表
+- **物品/价格**：`https://json.tarkov.dev/regular/items`（免鉴权 JSON 快照，约 17MB）
+- **中文名/用途**：社区中文数据集（`data/seed/items_zh.json`，来源 astrbot_plugin_tarkov_market），
+  覆盖 4235 件物品的中文名与 11856 条用途记录（任务需求/兑换/合成/藏身处升级）
 
 ## 已知限制
 
