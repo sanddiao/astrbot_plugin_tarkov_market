@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>塔科夫信息</title>
+  <style>
+    :root {
+      --bg: #121316; --panel: #1b1d22; --border: #2c2f36;
+      --text: #e6e6ea; --muted: #8a8f98; --accent: #c8a24a;
+      --green: #5cb85c; --red: #d9534f;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+    h1 { font-size: 18px; margin: 0 0 16px; letter-spacing: 1px; }
+    h2 { font-size: 15px; color: var(--accent); margin: 20px 0 10px; }
+
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .stat { flex: 1; min-width: 120px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .stat .num { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .search-box { display: flex; gap: 8px; }
+    .search-box input { flex: 1; padding: 10px 14px; font-size: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--text); outline: none; }
+    .search-box input:focus { border-color: var(--accent); }
+    .search-box button { padding: 10px 16px; background: var(--accent); color: #1b1d22; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .search-box button:hover { opacity: 0.9; }
+    .search-box button.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+
+    .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+    .row:hover { border-color: var(--accent); }
+    .row .name { flex: 1; font-size: 14px; font-weight: 600; }
+    .row .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .row .price { text-align: right; font-size: 15px; font-weight: 700; color: var(--accent); }
+    .row .chg { font-size: 11px; }
+    .chg.up { color: var(--green); } .chg.down { color: var(--red); }
+
+    .detail { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px; display: none; }
+    .detail table { width: 100%; border-collapse: collapse; }
+    .detail td { padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .detail td:first-child { color: var(--muted); width: 120px; }
+
+    .empty { text-align: center; color: var(--muted); padding: 30px; font-size: 14px; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .tabs { display: flex; gap: 8px; margin: 16px 0 8px; }
+    .tab { padding: 8px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted); }
+    .tab.active { color: var(--accent); border-color: var(--accent); }
+    .obj { font-size: 13px; line-height: 1.7; padding: 3px 0 3px 10px; border-left: 3px solid var(--border); margin-bottom: 5px; }
+    .obj-type { font-weight: 600; color: var(--accent); margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h1>塔科夫信息检索</h1>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="stat-items">—</div><div class="label">物品库</div></div>
+    <div class="stat"><div class="num" id="stat-tasks">—</div><div class="label">任务库</div></div>
+    <div class="stat"><div class="num" id="stat-price">—</div><div class="label">在线价格</div></div>
+  </div>
+
+  <button class="ghost" id="btn-refresh" style="padding:8px 16px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer;">在线刷新数据</button>
+
+  <div class="tabs">
+    <div class="tab active" data-mode="items">物品查询</div>
+    <div class="tab" data-mode="tasks">任务查询</div>
+  </div>
+
+  <div class="search-box">
+    <input id="search-input" type="text" placeholder="输入物品名，如 吗啡、显卡、ledx…" />
+    <button id="btn-search">搜索</button>
+  </div>
+  <div class="hint" id="search-hint">支持中文名 / 英文名模糊搜索</div>
+
+  <div id="results"></div>
+  <div id="detail" class="detail"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const api = window.AstrBotPluginPage;
+    let currentMode = 'items';
+
+    function fmt(n) { return n == null ? '—' : '₽' + Number(n).toLocaleString('zh-CN'); }
+
+    async function loadOverview() {
+      try {
+        const res = await api.apiGet('overview');
+        const stats = res?.data?.stats || res?.stats || '';
+        // stats 是文本，解析关键数字
+        const mItems = stats.match(/离线物品库：([\d,]+) 件/);
+        const mTasks = stats.match(/任务库：([\d,]+) 个/);
+        if (mItems) $('stat-items').textContent = mItems[1];
+        if (mTasks) $('stat-tasks').textContent = mTasks[1];
+        $('stat-price').textContent = stats.includes('在线物价') ? '已就绪' : '未刷新';
+      } catch (e) {
+        console.error('overview 失败', e);
+      }
+    }
+
+    async function searchItems(q) {
+      $('search-hint').textContent = '搜索中…';
+      try {
+        const res = await api.apiGet('search', { q });
+        const items = res?.data?.items || [];
+        const box = $('results');
+        box.innerHTML = '';
+        if (!items.length) { box.innerHTML = '<div class="empty">未找到相关物品</div>'; return; }
+        items.forEach((it) => {
+          const div = document.createElement('div');
+          div.className = 'row';
+          const chg = it.chg != null ? `<div class="chg ${it.chg >= 0 ? 'up' : 'down'}">${it.chg >= 0 ? '▲' : '▼'}${Math.abs(it.chg).toFixed(1)}%</div>` : '';
+          div.innerHTML = `
+            <div class="name">${it.name}<div class="sub">${it.variants > 1 ? it.variants + ' 变体' : ''} · 商人 ${fmt(it.trader)}</div></div>
+            <div class="price">${fmt(it.flea)}${chg}</div>`;
+          div.addEventListener('click', () => showItemDetail(it));
+          box.appendChild(div);
+        });
+      } catch (e) {
+        $('results').innerHTML = '<div class="empty">查询失败</div>';
+      } finally {
+        $('search-hint').textContent = '支持中文名 / 英文名模糊搜索';
+      }
+    }
+
+    function showItemDetail(it) {
+      const d = $('detail');
+      d.style.display = 'block';
+      d.innerHTML = `
+        <h2 style="margin-top:0">${it.name}</h2>
+        <table>
+          <tr><td>跳蚤市场</td><td>${fmt(it.flea)}</td></tr>
+          <tr><td>商人收购</td><td>${fmt(it.trader)}</td></tr>
+          <tr><td>48h 涨跌</td><td>${it.chg != null ? (it.chg >= 0 ? '+' : '') + it.chg.toFixed(2) + '%' : '—'}</td></tr>
+        </table>`;
+    }
+
+    async function searchTasks(q) {
+      $('search-hint').textContent = '搜索中…';
+      try {
+        const res = await api.apiGet('tasks', { q });
+        const tasks = res?.data?.tasks || [];
+        const box = $('results');
+        box.innerHTML = '';
+        if (!tasks.length) { box.innerHTML = '<div class="empty">未找到相关任务</div>'; return; }
+        tasks.forEach((t) => {
+          const div = document.createElement('div');
+          div.className = 'row';
+          div.innerHTML = `
+            <div class="name">${t.name_zh || t.name_en}<div class="sub">${t.trader_zh || ''}${t.min_level != null ? ' · Lv.' + t.min_level : ''}${t.map ? ' · ' + t.map : ''}</div></div>
+            <div class="price">${t.experience ? 'EXP ' + Number(t.experience).toLocaleString('zh-CN') : ''}</div>`;
+          div.addEventListener('click', () => showTaskDetail(t));
+          box.appendChild(div);
+        });
+      } catch (e) {
+        $('results').innerHTML = '<div class="empty">查询失败</div>';
+      } finally {
+        $('search-hint').textContent = '支持任务名 / 商人 / 地图模糊搜索';
+      }
+    }
+
+    function showTaskDetail(t) {
+      const d = $('detail');
+      d.style.display = 'block';
+      const objs = (t.objectives || []).map((o) => {
+        const cnt = o.count != null ? ' ×' + o.count : '';
+        const items = (o.items || []).length ? '：' + o.items.map(i => i.name).join('、') : '';
+        const maps = (o.maps || []).length ? ' [' + o.maps.join('/') + ']' : '';
+        return `<div class="obj"><span class="obj-type">${o.typeZh || o.type}${cnt}</span>${items}${maps}</div>`;
+      }).join('');
+      const rewards = (t.finish_items || []).map(i => `${i.name}×${i.count}`).join('、');
+      d.innerHTML = `
+        <h2 style="margin-top:0">${t.name_zh || t.name_en}</h2>
+        <table>
+          <tr><td>英文名</td><td>${t.name_en || '—'}</td></tr>
+          <tr><td>商人</td><td>${t.trader_zh || '—'}</td></tr>
+          <tr><td>等级</td><td>${t.min_level != null ? 'Lv.' + t.min_level : '—'}</td></tr>
+          <tr><td>地图</td><td>${t.map || '—'}</td></tr>
+          <tr><td>经验</td><td>${t.experience != null ? t.experience : '—'}</td></tr>
+          <tr><td>完成奖励</td><td>${rewards || '—'}</td></tr>
+        </table>
+        <h2>任务目标</h2>${objs || '<div class="empty">无</div>'}`;
+    }
+
+    function doSearch() {
+      const q = $('search-input').value.trim();
+      if (!q) return;
+      $('detail').style.display = 'none';
+      if (currentMode === 'items') searchItems(q); else searchTasks(q);
+    }
+
+    async function doRefresh() {
+      $('btn-refresh').textContent = '刷新中…';
+      try {
+        const res = await api.apiPost('refresh', {});
+        alert('刷新完成：' + JSON.stringify(res?.data || res));
+        loadOverview();
+      } catch (e) {
+        alert('刷新失败');
+      } finally {
+        $('btn-refresh').textContent = '在线刷新数据';
+      }
+    }
+
+    // 事件绑定
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentMode = tab.dataset.mode;
+        $('search-input').placeholder = currentMode === 'items' ? '输入物品名，如 吗啡、显卡、ledx…' : '输入任务名，如 首秀、惩罚者、枪匠…';
+        $('results').innerHTML = '';
+        $('detail').style.display = 'none';
+      });
+    });
+    $('btn-search').addEventListener('click', doSearch);
+    $('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+    $('btn-refresh').addEventListener('click', doRefresh);
+
+    // 初始化
+    loadOverview();
+  </script>
+</body>
+</html>
