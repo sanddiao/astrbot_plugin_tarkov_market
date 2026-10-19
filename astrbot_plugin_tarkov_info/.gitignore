@@ -1,5 +1,0 @@
-# 运行时缓存（在线刷新生成）
-data/live_items.json
-data/tasks.json
-__pycache__/
-*.pyc

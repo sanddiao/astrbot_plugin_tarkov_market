@@ -1,11 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>塔科夫信息</title>
   <style>
     :root {
+      --bg: #ffffff; --panel: #f5f6f8; --border: #d8dbe2;
+      --text: #1a1a1a; --muted: #6b7280; --accent: #b8860b;
+      --green: #2e7d32; --red: #c62828;
+    }
+    [data-theme="dark"] {
       --bg: #121316; --panel: #1b1d22; --border: #2c2f36;
       --text: #e6e6ea; --muted: #8a8f98; --accent: #c8a24a;
       --green: #5cb85c; --red: #d9534f;
@@ -23,16 +28,14 @@
     .search-box { display: flex; gap: 8px; }
     .search-box input { flex: 1; padding: 10px 14px; font-size: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--text); outline: none; }
     .search-box input:focus { border-color: var(--accent); }
-    .search-box button { padding: 10px 16px; background: var(--accent); color: #1b1d22; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
-    .search-box button:hover { opacity: 0.9; }
-    .search-box button.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+    .search-box button { padding: 10px 16px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
 
     .row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
     .row:hover { border-color: var(--accent); }
     .row .name { flex: 1; font-size: 14px; font-weight: 600; }
     .row .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .row .price { text-align: right; font-size: 15px; font-weight: 700; color: var(--accent); }
-    .row .chg { font-size: 11px; }
+    .chg { font-size: 11px; }
     .chg.up { color: var(--green); } .chg.down { color: var(--red); }
 
     .detail { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px; display: none; }
@@ -58,7 +61,7 @@
     <div class="stat"><div class="num" id="stat-price">—</div><div class="label">在线价格</div></div>
   </div>
 
-  <button class="ghost" id="btn-refresh" style="padding:8px 16px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer;">在线刷新数据</button>
+  <button id="btn-refresh" style="padding:8px 16px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer;">在线刷新数据</button>
 
   <div class="tabs">
     <div class="tab active" data-mode="items">物品查询</div>
@@ -66,7 +69,7 @@
   </div>
 
   <div class="search-box">
-    <input id="search-input" type="text" placeholder="输入物品名，如 吗啡、显卡、ledx…" />
+    <input id="search-input" type="text" placeholder="输入物品名，如 吗啡、显示卡、ledx…" />
     <button id="btn-search">搜索</button>
   </div>
   <div class="hint" id="search-hint">支持中文名 / 英文名模糊搜索</div>
@@ -74,23 +77,22 @@
   <div id="results"></div>
   <div id="detail" class="detail"></div>
 
-  <script>
+  <script type="module">
+    const bridge = window.AstrBotPluginView || window.AstrBotPluginPage;
     const $ = (id) => document.getElementById(id);
-    const api = window.AstrBotPluginPage;
     let currentMode = 'items';
 
     function fmt(n) { return n == null ? '—' : '₽' + Number(n).toLocaleString('zh-CN'); }
 
     async function loadOverview() {
       try {
-        const res = await api.apiGet('overview');
-        const stats = res?.data?.stats || res?.stats || '';
-        // stats 是文本，解析关键数字
+        const data = await bridge.apiGet('overview');
+        const stats = (data && data.stats) || '';
         const mItems = stats.match(/离线物品库：([\d,]+) 件/);
         const mTasks = stats.match(/任务库：([\d,]+) 个/);
         if (mItems) $('stat-items').textContent = mItems[1];
         if (mTasks) $('stat-tasks').textContent = mTasks[1];
-        $('stat-price').textContent = stats.includes('在线物价') ? '已就绪' : '未刷新';
+        $('stat-price').textContent = stats.includes('分钟前更新') ? '已就绪' : (stats.includes('在线物价') ? '已就绪' : '未刷新');
       } catch (e) {
         console.error('overview 失败', e);
       }
@@ -99,8 +101,8 @@
     async function searchItems(q) {
       $('search-hint').textContent = '搜索中…';
       try {
-        const res = await api.apiGet('search', { q });
-        const items = res?.data?.items || [];
+        const data = await bridge.apiGet('search', { q });
+        const items = (data && data.items) || [];
         const box = $('results');
         box.innerHTML = '';
         if (!items.length) { box.innerHTML = '<div class="empty">未找到相关物品</div>'; return; }
@@ -115,7 +117,7 @@
           box.appendChild(div);
         });
       } catch (e) {
-        $('results').innerHTML = '<div class="empty">查询失败</div>';
+        $('results').innerHTML = '<div class="empty">查询失败：' + (e.message || '') + '</div>';
       } finally {
         $('search-hint').textContent = '支持中文名 / 英文名模糊搜索';
       }
@@ -136,8 +138,8 @@
     async function searchTasks(q) {
       $('search-hint').textContent = '搜索中…';
       try {
-        const res = await api.apiGet('tasks', { q });
-        const tasks = res?.data?.tasks || [];
+        const data = await bridge.apiGet('tasks', { q });
+        const tasks = (data && data.tasks) || [];
         const box = $('results');
         box.innerHTML = '';
         if (!tasks.length) { box.innerHTML = '<div class="empty">未找到相关任务</div>'; return; }
@@ -151,7 +153,7 @@
           box.appendChild(div);
         });
       } catch (e) {
-        $('results').innerHTML = '<div class="empty">查询失败</div>';
+        $('results').innerHTML = '<div class="empty">查询失败：' + (e.message || '') + '</div>';
       } finally {
         $('search-hint').textContent = '支持任务名 / 商人 / 地图模糊搜索';
       }
@@ -190,23 +192,21 @@
     async function doRefresh() {
       $('btn-refresh').textContent = '刷新中…';
       try {
-        const res = await api.apiPost('refresh', {});
-        alert('刷新完成：' + JSON.stringify(res?.data || res));
-        loadOverview();
+        await bridge.apiPost('refresh', {});
+        await loadOverview();
       } catch (e) {
-        alert('刷新失败');
+        alert('刷新失败：' + (e.message || ''));
       } finally {
         $('btn-refresh').textContent = '在线刷新数据';
       }
     }
 
-    // 事件绑定
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         currentMode = tab.dataset.mode;
-        $('search-input').placeholder = currentMode === 'items' ? '输入物品名，如 吗啡、显卡、ledx…' : '输入任务名，如 首秀、惩罚者、枪匠…';
+        $('search-input').placeholder = currentMode === 'items' ? '输入物品名，如 吗啡、显示卡、ledx…' : '输入任务名，如 首秀、惩罚者、枪匠…';
         $('results').innerHTML = '';
         $('detail').style.display = 'none';
       });
@@ -215,7 +215,8 @@
     $('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
     $('btn-refresh').addEventListener('click', doRefresh);
 
-    // 初始化
+    // 初始化：等 bridge 就绪后加载数据
+    await bridge.ready();
     loadOverview();
   </script>
 </body>

@@ -1,6 +1,6 @@
-# 本插件所有功能均使用 Python 标准库实现（urllib / zipfile / xml / json），
+# 本插件所有功能均使用 Python 标准库实现（urllib / json / gzip），
 # 无需安装任何第三方依赖即可正常使用。
 #
-# 只有一个极简依赖 openpyxl 也不需要：tools/build_dataset.py 用标准库解析 xlsx。
-# 若你希望直接用 pandas/openpyxl 处理表格，可自行安装：
-# openpyxl>=3.0.0
+# 数据源：
+#   1. 离线库 data/items.json —— 中文名 + 用途（任务/兑换/合成/藏身处）
+#   2. 在线 json.tarkov.dev —— 实时价格 + 任务结构化数据
