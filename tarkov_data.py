@@ -15,6 +15,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import tempfile
 import threading
 import time
 import urllib.error
@@ -23,10 +24,9 @@ import urllib.request
 from typing import Dict, List, Optional, Tuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# 只读静态资源目录（插件捆绑目录，随插件分发）
 DATA_DIR = os.path.join(HERE, "data")
 ITEMS_JSON = os.path.join(DATA_DIR, "items.json")
-LIVE_JSON = os.path.join(DATA_DIR, "live_items.json")
-TASKS_JSON = os.path.join(DATA_DIR, "tasks.json")
 
 UA = "AstrBot-Tarkov-Info/1.0 (research tool)"
 
@@ -35,6 +35,27 @@ TASKS_URL = "https://json.tarkov.dev/regular/tasks"
 TASKS_ZH_URL = "https://json.tarkov.dev/regular/tasks_zh"
 
 LIVE_TTL = 24 * 3600  # 在线数据缓存 24 小时
+
+PLUGIN_NAME = "astrbot_plugin_tarkov_info"
+
+
+def _resolve_cache_dir() -> str:
+    """获取运行时缓存目录（AstrBot 规范的 plugin_data 目录）。
+
+    优先使用 StarTools.get_data_dir(plugin_name)（即 data/plugin_data/<plugin_name>），
+    失败时回退到系统临时目录，保证脱离 AstrBot 环境（测试）也能运行。
+    """
+    try:
+        from astrbot.api.star import StarTools  # type: ignore
+        d = StarTools.get_data_dir(PLUGIN_NAME)
+        if d:
+            return str(d)
+    except Exception:
+        pass
+    # 回退：系统临时目录下的独立子目录
+    fallback = os.path.join(tempfile.gettempdir(), "astrbot_plugin_tarkov_info")
+    os.makedirs(fallback, exist_ok=True)
+    return fallback
 
 # 商人 id → 中文名
 TRADER_ZH = {
@@ -100,8 +121,11 @@ def _norm(s: str) -> str:
 class Dataset:
     """持有全部塔科夫数据，提供检索 / 格式化 / 在线刷新。"""
 
-    def __init__(self, data_dir: str = DATA_DIR):
+    def __init__(self, data_dir: str = DATA_DIR, cache_dir: Optional[str] = None):
+        # data_dir：只读静态资源（items.json），随插件捆绑分发
         self.data_dir = data_dir
+        # cache_dir：运行时缓存（live_items.json / tasks.json），写入 plugin_data 目录
+        self.cache_dir = cache_dir or _resolve_cache_dir()
         self.items: List[dict] = []
         self.by_id: Dict[str, dict] = {}
         self.by_name: Dict[str, List[dict]] = {}
@@ -132,7 +156,7 @@ class Dataset:
 
     def _load_live_cache(self) -> dict:
         """读取在线价格缓存（可能不存在，返回 {}）。"""
-        path = os.path.join(self.data_dir, "live_items.json")
+        path = os.path.join(self.cache_dir, "live_items.json")
         if not os.path.exists(path):
             return {}
         try:
@@ -145,7 +169,7 @@ class Dataset:
             return {}
 
     def _load_tasks_cache(self) -> None:
-        path = os.path.join(self.data_dir, "tasks.json")
+        path = os.path.join(self.cache_dir, "tasks.json")
         if not os.path.exists(path):
             self.tasks = {}
             return
@@ -255,8 +279,8 @@ class Dataset:
             "prices": prices,
             "names_en": names_en,
         }
-        os.makedirs(self.data_dir, exist_ok=True)
-        live_path = os.path.join(self.data_dir, "live_items.json")
+        os.makedirs(self.cache_dir, exist_ok=True)
+        live_path = os.path.join(self.cache_dir, "live_items.json")
         with open(live_path, "w", encoding="utf-8") as f:
             json.dump(live, f, ensure_ascii=False, separators=(",", ":"))
 
@@ -320,8 +344,8 @@ class Dataset:
                 ],
             }
 
-        os.makedirs(self.data_dir, exist_ok=True)
-        tasks_path = os.path.join(self.data_dir, "tasks.json")
+        os.makedirs(self.cache_dir, exist_ok=True)
+        tasks_path = os.path.join(self.cache_dir, "tasks.json")
         with open(tasks_path, "w", encoding="utf-8") as f:
             json.dump({"updated_at": time.time(), "tasks": normalized}, f, ensure_ascii=False, separators=(",", ":"))
 
