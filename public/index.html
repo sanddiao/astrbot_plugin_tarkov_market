@@ -3,27 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>塔科夫物资查询</title>
+  <title>塔科夫信息检索</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header class="topbar">
-    <h1>塔科夫 · 物资查询</h1>
+    <h1>塔科夫 · 信息检索</h1>
     <div class="status" id="status">连接中…</div>
   </header>
 
-  <main>
-    <div class="search-box">
-      <input
-        id="search-input"
-        type="text"
-        placeholder="输入物品名搜索，如 m4a1、ledx、graphics card…"
-        autocomplete="off"
-      />
-    </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="items">物资查询</button>
+    <button class="tab" data-tab="tasks">任务查询</button>
+  </nav>
 
-    <div id="results" class="results"></div>
-    <div id="detail" class="detail"></div>
+  <main>
+    <!-- 物资视图 -->
+    <section id="view-items" class="view active">
+      <div class="search-box">
+        <input
+          id="search-input"
+          type="text"
+          placeholder="输入物品名搜索，如 m4a1、ledx、金星软膏、graphics card…"
+          autocomplete="off"
+        />
+      </div>
+      <div id="results" class="results"></div>
+      <div id="detail" class="detail"></div>
+    </section>
+
+    <!-- 任务视图 -->
+    <section id="view-tasks" class="view">
+      <div class="search-box">
+        <input
+          id="task-search-input"
+          type="text"
+          placeholder="输入任务名/物品/商人/地图搜索，如 first-in-line、卢布、医生、海关…"
+          autocomplete="off"
+        />
+      </div>
+      <div id="task-filters" class="task-filters"></div>
+      <div id="task-results" class="results"></div>
+      <div id="task-detail" class="detail"></div>
+    </section>
   </main>
 
   <script type="module" src="/app.js"></script>

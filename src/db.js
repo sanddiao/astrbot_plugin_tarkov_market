@@ -68,6 +68,29 @@ export function getDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_usage_item ON item_usage(item_id);
     CREATE INDEX IF NOT EXISTS idx_usage_type ON item_usage(usage_type);
+
+    -- 任务数据（来自 tarkov.dev tasks）
+    CREATE TABLE IF NOT EXISTS tasks (
+      id            TEXT PRIMARY KEY,
+      name_en       TEXT NOT NULL,          -- normalizedName（英文任务名）
+      name_zh       TEXT,                   -- 中文任务名（社区数据匹配）
+      trader_id     TEXT,                   -- 发布商人 id
+      trader_zh     TEXT,                   -- 商人中文名
+      min_level     INTEGER,                -- 最低玩家等级
+      map_id        TEXT,                   -- 主要地图
+      wiki_link     TEXT,
+      image_link    TEXT,
+      experience    INTEGER,
+      objectives    TEXT,                   -- JSON（目标数组）
+      start_rewards TEXT,                   -- JSON（接取奖励）
+      finish_rewards TEXT,                  -- JSON（完成奖励）
+      task_requirements TEXT,               -- JSON（前置任务）
+      needed_keys   TEXT,                   -- JSON（所需钥匙）
+      synced_at     TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_tasks_name_en ON tasks(name_en);
+    CREATE INDEX IF NOT EXISTS idx_tasks_name_zh ON tasks(name_zh);
+    CREATE INDEX IF NOT EXISTS idx_tasks_trader ON tasks(trader_id);
   `);
 
   return db;

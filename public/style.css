@@ -33,6 +33,55 @@ body {
 }
 .status { font-size: 13px; color: var(--muted); }
 
+.tabs {
+  display: flex;
+  gap: 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+.task-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.filter-btn {
+  padding: 6px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.filter-btn:hover { color: var(--text); border-color: var(--accent); }
+.filter-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(200, 162, 74, 0.1);
+}
+
 main {
   max-width: 880px;
   margin: 0 auto;
@@ -107,5 +156,35 @@ main {
 .usage-type { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .usage-group ul { margin: 0; padding-left: 18px; }
 .usage-group li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+/* 任务目标列表 */
+.obj-list { margin: 0; padding-left: 0; list-style: none; }
+.obj-list li.obj {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.7;
+  padding: 4px 0 4px 12px;
+  border-left: 3px solid var(--border);
+  margin-bottom: 6px;
+}
+.obj-type {
+  display: inline-block;
+  font-weight: 600;
+  margin-right: 8px;
+  color: var(--accent);
+  min-width: 64px;
+}
+.obj.kill .obj-type { color: #e06c75; }
+.obj.give .obj-type { color: #61afef; }
+.obj.find .obj-type { color: #98c379; }
+.obj.extract .obj-type { color: #d19a66; }
+.obj.plant .obj-type { color: #c678dd; }
+.obj.mark .obj-type { color: #56b6c2; }
+
+.req-task {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
 
 .empty { text-align: center; color: var(--muted); padding: 40px 0; }

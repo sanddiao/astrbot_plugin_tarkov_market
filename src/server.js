@@ -6,6 +6,7 @@ import { config, ROOT } from './config.js';
 import apiRouter from './routes/api.js';
 import { getDb } from './db.js';
 import { syncItems } from './jobs/sync.js';
+import { syncTasks } from './jobs/sync_tasks.js';
 
 const app = express();
 app.use(cors());
@@ -35,18 +36,36 @@ app.listen(config.port, () => {
 });
 
 // 首次启动若无数据则自动同步
-const c = (() => {
-  try {
-    return getDb().prepare('SELECT COUNT(*) AS c FROM items').get().c;
-  } catch {
-    return 0;
+function autoSync() {
+  const c = (() => {
+    try {
+      return getDb().prepare('SELECT COUNT(*) AS c FROM items').get().c;
+    } catch {
+      return 0;
+    }
+  })();
+  if (c === 0) {
+    console.log('[tarkov-info] 数据库为空，开始首次同步…');
+    syncItems()
+      .then((r) => console.log('[tarkov-info] 首次同步完成:', JSON.stringify(r)))
+      .catch((e) => console.error('[tarkov-info] 首次同步失败:', e.message));
   }
-})();
-if (c === 0) {
-  console.log('[tarkov-info] 数据库为空，开始首次同步…');
-  syncItems()
-    .then((r) => console.log('[tarkov-info] 首次同步完成:', JSON.stringify(r)))
-    .catch((e) => console.error('[tarkov-info] 首次同步失败:', e.message));
+
+  const tc = (() => {
+    try {
+      return getDb().prepare('SELECT COUNT(*) AS c FROM tasks').get().c;
+    } catch {
+      return 0;
+    }
+  })();
+  if (tc === 0) {
+    console.log('[tarkov-info] 任务表为空，开始同步任务…');
+    syncTasks()
+      .then((r) => console.log('[tarkov-info] 任务同步完成:', JSON.stringify(r)))
+      .catch((e) => console.error('[tarkov-info] 任务同步失败:', e.message));
+  }
 }
+
+autoSync();
 
 export default app;
