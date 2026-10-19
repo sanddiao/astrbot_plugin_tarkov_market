@@ -1,0 +1,7 @@
+name: astrbot_plugin_tarkov_market
+display_name: 塔科夫物价查询
+desc: 逃离塔科夫物品物价定向查询：跳蚤价、商人收购价、卖出建议与物品用途，支持离线库与在线刷新
+version: "1.0.0"
+author: sanddiao
+repo: ""
+astrbot_version: ">=3.4.28"

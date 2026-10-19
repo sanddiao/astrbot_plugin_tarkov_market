@@ -30,6 +30,12 @@ Thumbs.db
 # Coverage
 coverage/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.tmp
+
 # SQLite 数据库（运行时生成）
 data/*.db
 data/*.db-shm
@@ -38,5 +44,10 @@ data/*.db-wal
 *.db-shm
 *.db-wal
 
-# 临时参考文件（从 zip 解压的原始仓库）
+# 运行时缓存（在线刷新生成）
+data/live_prices.json
+data/live_items.json
+data/tasks.json
+
+# 临时参考文件
 _ref/
