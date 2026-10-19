@@ -31,7 +31,12 @@ Thumbs.db
 coverage/
 
 # SQLite 数据库（运行时生成）
-data/
+data/*.db
+data/*.db-shm
+data/*.db-wal
 *.db
 *.db-shm
 *.db-wal
+
+# 临时参考文件（从 zip 解压的原始仓库）
+_ref/

@@ -57,6 +57,17 @@ export function getDb() {
       key   TEXT PRIMARY KEY,
       value TEXT
     );
+
+    -- 物品用途数据（来自社区中文数据集：任务需求/兑换/合成/藏身处升级等）
+    CREATE TABLE IF NOT EXISTS item_usage (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id   TEXT NOT NULL,
+      usage_type TEXT NOT NULL,             -- 任务需求/兑换材料/兑换产出/合成材料/合成产出/藏身处升级
+      detail    TEXT NOT NULL,              -- 明细文本（如 "兽医也是医(上交物品5需带标记)"）
+      UNIQUE(item_id, usage_type, detail)
+    );
+    CREATE INDEX IF NOT EXISTS idx_usage_item ON item_usage(item_id);
+    CREATE INDEX IF NOT EXISTS idx_usage_type ON item_usage(usage_type);
   `);
 
   return db;

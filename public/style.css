@@ -101,4 +101,11 @@ main {
 .detail td:first-child { color: var(--muted); width: 160px; }
 .detail a { color: var(--accent); }
 
+.usage { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+.usage h3 { margin: 0 0 12px; font-size: 15px; color: var(--accent); }
+.usage-group { margin-bottom: 12px; }
+.usage-type { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.usage-group ul { margin: 0; padding-left: 18px; }
+.usage-group li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
 .empty { text-align: center; color: var(--muted); padding: 40px 0; }

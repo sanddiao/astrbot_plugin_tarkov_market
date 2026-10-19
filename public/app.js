@@ -31,10 +31,12 @@ async function loadHealth() {
 function renderItemRow(item) {
   const div = document.createElement('div');
   div.className = 'item-row';
+  const mainName = item.nameZh || item.nameEn;
+  const subName = item.nameZh ? item.nameEn : '';
   div.innerHTML = `
     ${item.iconLink ? `<img src="${item.iconLink}" loading="lazy" onerror="this.style.visibility='hidden'">` : ''}
     <div class="meta">
-      <div class="name">${item.nameEn}<span class="zh">${item.nameZh || ''}</span></div>
+      <div class="name">${mainName}<span class="zh">${subName}</span></div>
       <div class="types">${(item.types || []).slice(0, 4).join(' · ')}</div>
     </div>
     <div class="price">
@@ -46,8 +48,21 @@ function renderItemRow(item) {
   return div;
 }
 
-function showDetail(item) {
-  const zh = item.nameZh ? `<div class="zh-name">${item.nameZh}</div>` : '';
+async function showDetail(item) {
+  // 先展示基本信息，同时异步拉取详情（含用途）
+  renderDetail(item);
+  try {
+    const r = await fetch(`/api/items/${item.id}`);
+    if (r.ok) {
+      const full = await r.json();
+      renderDetail(full);
+    }
+  } catch {
+    // 忽略，保持基本信息
+  }
+}
+
+function renderDetail(item) {
   const rows = [
     ['英文原名', item.nameEn],
     ['跳蚤 24h 均价', `₽ ${fmt(item.avg24h)}`],
@@ -64,15 +79,39 @@ function showDetail(item) {
   if (item.link) rows.push(['来源', `<a href="${item.link}" target="_blank" rel="noopener">tarkov.dev</a>`]);
   if (item.wikiLink) rows.push(['Wiki', `<a href="${item.wikiLink}" target="_blank" rel="noopener">Fandom Wiki</a>`]);
 
+  // 用途区块
+  let usageHtml = '';
+  const usage = item.usage || {};
+  const usageLabels = {
+    '任务需求': '任务需求',
+    '兑换材料': '兑换材料',
+    '兑换产出': '兑换产出',
+    '合成材料': '合成材料',
+    '合成产出': '合成产出',
+    '藏身处升级': '藏身处升级',
+  };
+  const usageKeys = Object.keys(usage);
+  if (usageKeys.length > 0) {
+    usageHtml = `<div class="usage">
+      <h3>用途</h3>
+      ${usageKeys.map((k) => `
+        <div class="usage-group">
+          <div class="usage-type">${usageLabels[k] || k}（${usage[k].length}）</div>
+          <ul>${usage[k].map((d) => `<li>${d}</li>`).join('')}</ul>
+        </div>`).join('')}
+    </div>`;
+  }
+
   detailEl.innerHTML = `
     <div class="head">
       ${item.iconLink ? `<img src="${item.iconLink}" onerror="this.style.visibility='hidden'">` : ''}
       <div>
-        <h2>${item.nameEn}</h2>
-        ${zh}
+        <h2>${item.nameZh || item.nameEn}</h2>
+        <div class="zh-name">${item.nameEn}</div>
       </div>
     </div>
     <table>${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+    ${usageHtml}
   `;
 }
 

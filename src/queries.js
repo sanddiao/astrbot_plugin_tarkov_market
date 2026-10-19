@@ -70,6 +70,41 @@ export function getItemById(id) {
   return rowToItem(db.prepare('SELECT * FROM items WHERE id = ?').get(id));
 }
 
+/** 取某物品的用途列表，按类型分组。 */
+export function getItemUsage(itemId) {
+  const db = getDb();
+  const rows = db
+    .prepare('SELECT usage_type, detail FROM item_usage WHERE item_id = ? ORDER BY usage_type')
+    .all(itemId);
+  const grouped = {};
+  for (const r of rows) {
+    (grouped[r.usage_type] ??= []).push(r.detail);
+  }
+  return grouped;
+}
+
+/**
+ * 反查用途：给定一个任务名/用途关键词，找出所有相关物品。
+ * 例如查"兽医也是医"任务需要哪些物品。
+ */
+export function searchByUsage(keyword, { limit = 50 } = {}) {
+  const db = getDb();
+  const kw = (keyword ?? '').trim();
+  if (!kw) return [];
+  const like = `%${kw}%`;
+  const rows = db
+    .prepare(
+      `SELECT DISTINCT i.*
+       FROM item_usage u
+       JOIN items i ON i.id = u.item_id
+       WHERE u.detail LIKE ?
+       ORDER BY i.avg24h DESC
+       LIMIT ?`
+    )
+    .all(like, limit);
+  return rows.map(rowToItem);
+}
+
 /** 物品总数。 */
 export function itemCount() {
   const db = getDb();
