@@ -33,7 +33,7 @@ tarkov-info/（仓库根目录 = AstroBot 插件）
 ├── metadata.yaml                  # 插件元信息（AstrBot 识别插件必需）
 ├── requirements.txt               # 无第三方依赖
 │
-├── views/                         # 插件可视化视图（AstrBot WebUI「打开插件UI界面」）
+├── pages/                         # 插件可视化视图（AstrBot WebUI「打开插件UI界面」）
 │   └── dashboard/
 │       └── index.html             # 面板：数据概览/物品搜索/任务搜索/在线刷新
 │
@@ -165,13 +165,13 @@ tarkov-info/（仓库根目录 = AstroBot 插件）
 
 实现遵循 AstrBot 官方插件页面规范：
 
-- 视图位于 `views/dashboard/index.html`（受限 iframe 加载）
+- 视图位于 `pages/dashboard/index.html`（受限 iframe 加载）
 - 前端通过 `window.AstrBotPluginView` bridge 与后端通信（`ready()` → `apiGet()` → `apiPost()`）
 - 后端 API 路由以插件名为前缀：`/astrbot_plugin_tarkov_info/overview|search|tasks|refresh`
 - 自动适配 WebUI 亮/暗主题
 - 视图标题等元数据位于 `.astrbot-plugin/i18n/zh-CN.json`
 
-> **版本要求**：AstrBot `>= 4.24`（插件视图 `views/` + `register_web_api` API）
+> **版本要求**：AstrBot `>= 4.24`（插件视图 `pages/` + `register_web_api` API）
 
 ### 依赖
 

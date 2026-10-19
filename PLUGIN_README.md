@@ -1,4 +1,4 @@
-# 塔科夫信息检索 · AstroBot 插件
+﻿# 塔科夫信息检索 · AstroBot 插件
 
 逃离塔科夫（Escape from Tarkov）信息检索插件，集成到 [AstroBot](https://github.com/AstrBotDevs/AstrBot) 机器人框架。
 
