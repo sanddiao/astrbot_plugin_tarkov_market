@@ -10,4 +10,5 @@ export const config = {
   itemsUrl: process.env.TARKOV_ITEMS_URL ?? 'https://json.tarkov.dev/regular/items',
   itemsZhUrl: process.env.TARKOV_ITEMS_ZH_URL ?? 'https://json.tarkov.dev/regular/items_zh',
   syncIntervalSeconds: Number(process.env.SYNC_INTERVAL_SECONDS ?? 600),
+  disableAutoSync: process.env.DISABLE_AUTO_SYNC === '1',
 };

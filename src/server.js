@@ -5,8 +5,7 @@ import fs from 'node:fs';
 import { config, ROOT } from './config.js';
 import apiRouter from './routes/api.js';
 import { getDb } from './db.js';
-import { syncItems } from './jobs/sync.js';
-import { syncTasks } from './jobs/sync_tasks.js';
+import { ensureInitialData, startScheduler } from './scheduler.js';
 
 const app = express();
 app.use(cors());
@@ -35,37 +34,12 @@ app.listen(config.port, () => {
   console.log(`[tarkov-info] 数据库: ${config.dbPath}`);
 });
 
-// 首次启动若无数据则自动同步
-function autoSync() {
-  const c = (() => {
-    try {
-      return getDb().prepare('SELECT COUNT(*) AS c FROM items').get().c;
-    } catch {
-      return 0;
-    }
-  })();
-  if (c === 0) {
-    console.log('[tarkov-info] 数据库为空，开始首次同步…');
-    syncItems()
-      .then((r) => console.log('[tarkov-info] 首次同步完成:', JSON.stringify(r)))
-      .catch((e) => console.error('[tarkov-info] 首次同步失败:', e.message));
-  }
-
-  const tc = (() => {
-    try {
-      return getDb().prepare('SELECT COUNT(*) AS c FROM tasks').get().c;
-    } catch {
-      return 0;
-    }
-  })();
-  if (tc === 0) {
-    console.log('[tarkov-info] 任务表为空，开始同步任务…');
-    syncTasks()
-      .then((r) => console.log('[tarkov-info] 任务同步完成:', JSON.stringify(r)))
-      .catch((e) => console.error('[tarkov-info] 任务同步失败:', e.message));
-  }
-}
-
-autoSync();
+// 首次启动：空表立即同步，然后启动定时刷新
+ensureInitialData()
+  .then(() => startScheduler())
+  .catch((e) => {
+    console.error('[tarkov-info] 初始化同步失败:', e.message);
+    startScheduler(); // 即使首次失败也启动定时器，后续会重试
+  });
 
 export default app;

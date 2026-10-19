@@ -13,8 +13,7 @@ import {
   taskTraderStats,
 } from '../task_queries.js';
 import { getMeta } from '../db.js';
-import { syncItems } from '../jobs/sync.js';
-import { syncTasks } from '../jobs/sync_tasks.js';
+import { isSyncing, lastSyncResult, triggerSync } from '../scheduler.js';
 
 const router = Router();
 
@@ -27,6 +26,18 @@ router.get('/health', (req, res) => {
     lastSyncAt: getMeta('last_sync_at') ?? null,
     zhImportAt: getMeta('zh_import_at') ?? null,
     tasksSyncedAt: getMeta('tasks_synced_at') ?? null,
+    syncing: isSyncing(),
+  });
+});
+
+// 同步状态
+router.get('/sync/status', (req, res) => {
+  res.json({
+    syncing: isSyncing(),
+    lastResult: lastSyncResult(),
+    lastSyncStartedAt: getMeta('last_sync_started_at') ?? null,
+    lastSyncFinishedAt: getMeta('last_sync_finished_at') ?? null,
+    intervalSeconds: Number(process.env.SYNC_INTERVAL_SECONDS ?? 600),
   });
 });
 
@@ -56,10 +67,13 @@ router.get('/items/:id', (req, res) => {
   res.json(item);
 });
 
-// 手动触发同步
+// 手动触发同步（走调度器，带防重入）
 router.post('/sync', async (req, res) => {
+  if (isSyncing()) {
+    return res.status(409).json({ ok: false, error: '同步正在进行中' });
+  }
   try {
-    const result = await syncItems();
+    const result = await triggerSync('手动触发');
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? err) });
@@ -89,10 +103,13 @@ router.get('/tasks/:id', (req, res) => {
   res.json(task);
 });
 
-// 手动触发任务同步
+// 手动触发任务同步（走调度器）
 router.post('/sync/tasks', async (req, res) => {
+  if (isSyncing()) {
+    return res.status(409).json({ ok: false, error: '同步正在进行中' });
+  }
   try {
-    const result = await syncTasks();
+    const result = await triggerSync('手动触发任务同步');
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err?.message ?? err) });
