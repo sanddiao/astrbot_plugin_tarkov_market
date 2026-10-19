@@ -1,0 +1,6 @@
+# 禁止所有依赖的构建脚本（本机沙箱无法 spawn 子进程编译原生模块）
+# 项目使用 node:sqlite 内置 SQLite，不依赖任何需要编译的包
+onlyBuiltDependencies: []
+
+# 使用 hoisted（扁平化）node_modules，避免 Windows 沙箱下符号链接失效
+nodeLinker: hoisted

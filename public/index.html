@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>塔科夫物资查询</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>塔科夫 · 物资查询</h1>
+    <div class="status" id="status">连接中…</div>
+  </header>
+
+  <main>
+    <div class="search-box">
+      <input
+        id="search-input"
+        type="text"
+        placeholder="输入物品名搜索，如 m4a1、ledx、graphics card…"
+        autocomplete="off"
+      />
+    </div>
+
+    <div id="results" class="results"></div>
+    <div id="detail" class="detail"></div>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
