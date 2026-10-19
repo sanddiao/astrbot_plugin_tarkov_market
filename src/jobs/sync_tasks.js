@@ -1,8 +1,7 @@
 import { getDb, setMeta } from '../db.js';
-import { fetchJson } from '../fetcher.js';
+import { fetchJson, fetchTasksZh } from '../fetcher.js';
 import { traderName, mapName } from '../constants.js';
-
-const TASKS_URL = 'https://json.tarkov.dev/regular/tasks';
+import { config } from '../config.js';
 
 // 目标类型 → 中文动词
 const OBJ_TYPE_ZH = {
@@ -103,22 +102,17 @@ function normalizeTask(task, nameZhMap, itemZhMap) {
  */
 export async function syncTasks() {
   const db = getDb();
-  const json = await fetchJson(TASKS_URL);
+  const [json, zhMap] = await Promise.all([
+    fetchJson(config.tasksUrl),
+    fetchTasksZh(),
+  ]);
   const tasks = json?.data?.tasks;
   if (!tasks || typeof tasks !== 'object') {
     throw new Error('tasks 数据格式异常');
   }
 
-  // 构建中文任务名映射：从 item_usage 的「任务需求」文本提取，再按 normalizedName 关联
-  // 更简单：直接用 normalizedName 作为 key，中文名从社区数据按英文名匹配
-  const nameZhMap = new Map();
-  const enToZh = new Map();
-  const usageRows = db
-    .prepare("SELECT DISTINCT detail FROM item_usage WHERE usage_type = '任务需求'")
-    .all();
-  // 从 detail 提取 "任务名(...)"，得到中文名集合（这里只能拿到中文名，无法直接映射到 task id）
-  // 因此改用另一种策略：通过任务英文名（normalizedName）→ wiki 标题 → 中文名 是困难的。
-  // 这里先保留 normalizedName 作为 name_en，中文名留空，后续可手动补充映射表。
+  // 中文任务名映射（tasks_zh 返回 { taskId: 中文名 }）
+  const nameZhMap = new Map(Object.entries(zhMap));
 
   // 构建物品中文名映射（用于目标展示）
   const itemZhMap = new Map();
@@ -137,7 +131,7 @@ export async function syncTasks() {
     )
     ON CONFLICT(id) DO UPDATE SET
       name_en = excluded.name_en,
-      name_zh = excluded.name_zh,
+      name_zh = COALESCE(excluded.name_zh, tasks.name_zh),
       trader_id = excluded.trader_id,
       trader_zh = excluded.trader_zh,
       min_level = excluded.min_level,
@@ -155,9 +149,11 @@ export async function syncTasks() {
 
   db.exec('BEGIN');
   let count = 0;
+  let zhCount = 0;
   try {
     for (const [id, task] of Object.entries(tasks)) {
       if (!task || typeof task !== 'object') continue;
+      if (nameZhMap.has(id)) zhCount++;
       upsert.run(normalizeTask(task, nameZhMap, itemZhMap));
       count++;
     }
@@ -169,5 +165,5 @@ export async function syncTasks() {
 
   setMeta('tasks_synced_at', new Date().toISOString());
   setMeta('task_count', String(count));
-  return { tasks: count };
+  return { tasks: count, zh: zhCount };
 }

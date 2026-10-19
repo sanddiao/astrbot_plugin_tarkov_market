@@ -52,3 +52,26 @@ export async function fetchItemsZh() {
     return {};
   }
 }
+
+/**
+ * 拉取任务中文名映射（tasks_zh），返回 { taskId: 中文名 }。
+ * tasks_zh 返回格式：{ data: { "<taskId> name": "中文名", ... } }
+ */
+export async function fetchTasksZh() {
+  try {
+    const json = await fetchJson(config.tasksZhUrl);
+    const data = json?.data;
+    if (!data || typeof data !== 'object') return {};
+    const map = {};
+    for (const [k, v] of Object.entries(data)) {
+      const m = k.match(/^([0-9a-f]{24}) name$/);
+      if (m && typeof v === 'string' && v.trim()) {
+        map[m[1]] = v;
+      }
+    }
+    return map;
+  } catch (err) {
+    console.warn('[fetch] tasks_zh 拉取失败（忽略）:', err.message);
+    return {};
+  }
+}

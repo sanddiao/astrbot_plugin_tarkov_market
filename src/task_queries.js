@@ -36,6 +36,7 @@ export function searchTasks(query, { trader = null, limit = 50 } = {}) {
   const conds = [];
 
   if (q) {
+    // 排序优先级：中文任务名/英文任务名精确匹配 > 任务名前缀 > 任务名包含 > 目标/商人/地图包含
     conds.push(`(name_en LIKE ? OR name_zh LIKE ? OR objectives LIKE ? OR trader_zh LIKE ?)`);
     params.push(like, like, like, like);
   }
@@ -44,7 +45,20 @@ export function searchTasks(query, { trader = null, limit = 50 } = {}) {
     params.push(trader);
   }
   if (conds.length) sql += ` WHERE ` + conds.join(' AND ');
-  sql += ` ORDER BY min_level ASC, name_en ASC LIMIT ?`;
+
+  if (q) {
+    sql += ` ORDER BY
+      CASE
+        WHEN name_zh = ? OR name_en = ? THEN 0
+        WHEN name_zh LIKE ? OR name_en LIKE ? THEN 1
+        WHEN name_zh LIKE ? OR name_en LIKE ? THEN 2
+        ELSE 3
+      END,
+      min_level ASC, name_en ASC LIMIT ?`;
+    params.push(q, q, `${q}%`, `${q}%`, like, like);
+  } else {
+    sql += ` ORDER BY min_level ASC, name_en ASC LIMIT ?`;
+  }
   params.push(limit);
 
   const rows = db.prepare(sql).all(...params);

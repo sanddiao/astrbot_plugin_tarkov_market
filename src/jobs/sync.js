@@ -26,7 +26,7 @@ export async function syncItems() {
     ON CONFLICT(id) DO UPDATE SET
       name_en = excluded.name_en,
       short_name = excluded.short_name,
-      name_zh = excluded.name_zh,
+      name_zh = COALESCE(items.name_zh, excluded.name_zh),
       description = excluded.description,
       types = excluded.types,
       categories = excluded.categories,
