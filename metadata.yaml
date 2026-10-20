@@ -2,7 +2,7 @@ name: astrbot_plugin_tarkov_info
 display_name: 塔科夫信息查询
 desc: 逃离塔科夫信息检索：物品物价（跳蚤/商人）、物品用途（任务/兑换/合成/藏身处）、任务查询（目标/奖励/前置）、中英文双向搜索，附带 Web 可视化面板
 short_desc: 塔科夫物价/用途/任务查询，带可视化面板
-version: "1.1.3"
+version: "1.1.4"
 author: sanddiao
 repo: ""
 astrbot_version: ">=4.24"
